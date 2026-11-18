@@ -1,28 +1,30 @@
 # dsh-cam-plugin
 
-把本地 [cam](https://github.com/HanochZhu/codeagent_memory)（code agent memory，项目里的代码图 + 解法记忆）接到 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（DSH，DeepSeek 的 agent 运行时）。
+[English](README.md) · [中文](README.zh.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [العربية](README.ar.md)
 
-插件通过本机 `cam --json` 工作。记忆和代码图留在目标项目的 `.cam/cam.db`，不会上传。
+Connect local [cam](https://github.com/HanochZhu/codeagent_memory) (code agent memory: a project's code graph and solution memory) to [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (DSH, DeepSeek's agent runtime).
 
-## 准备
+The plugin talks to the local `cam --json` binary. The memory and code graph stay in the target project's `.cam/cam.db` and are not uploaded.
 
-`cam` 已经在 `PATH` 上，`cam --help` 能跑。本包不附带这个二进制。
+## Prerequisite
 
-## 安装
+`cam` is already on `PATH` and `cam --help` runs. This package does not ship the binary.
+
+## Install
 
 ```sh
 dsh plugin --profile <profile> add github:HanochZhu/dsh-cam-plugin
 ```
 
-入口是纯 ESM，安装时不用执行构建脚本。装好后用这个 profile 启动：
+The entry point is plain ESM, so install does not run a build script. Start Harness with that profile:
 
 ```sh
 dsh --profile <profile>
 ```
 
-用 `--dump-config` 时，层列表里会出现 `# == dsh-cam-plugin`。
+`--dump-config` lists a layer named `# == dsh-cam-plugin`.
 
-指定二进制或默认项目时，在 profile 的 `cordis.patch.yml` 里按 id 覆盖。这一层会换掉该行的整个 `config`：
+To pin the binary or the default project, override this row by id in the profile's `cordis.patch.yml`. That layer replaces the row's entire `config`:
 
 ```yaml
 - id: cam
@@ -31,30 +33,30 @@ dsh --profile <profile>
     project: D:/work/my-repo
 ```
 
-`project` 也可以不写。每个工具都有 `path`；都不写时，cam 用 `CAM_PROJECT`，再从进程工作目录向上找 `.cam` 或 `.git`。
+`project` can be omitted. Every tool accepts `path`. When both are omitted, cam uses `CAM_PROJECT`, then walks up from the process working directory looking for `.cam` or `.git`.
 
-未安装成 bundle、只想本地试跑时：
+To try a checkout that is not installed as a bundle:
 
 ```sh
 dsh web --patch ./cordis.example.yml
 ```
 
-`cordis.example.yml` 里的插件路径必须是绝对路径。
+The plugin path in `cordis.example.yml` must be absolute.
 
-## 工具
+## Tools
 
-| 工具 | 作用 |
+| Tool | Role |
 | --- | --- |
-| `cam_recall` | 用一句英语检索解法记忆 |
-| `cam_index` | 首次建图，之后只做增量 |
-| `cam_ls` / `cam_find` / `cam_grep` | 列目录、按符号名查找、按字面文本搜索 |
-| `cam_read` / `cam_ref` | 读一个符号，或看调用方（`in`）和被调用方（`out`） |
-| `cam_add` / `cam_mem_show` / `cam_mem_tree` | 写入一条记忆、按 id 查看、打印记忆树 |
-| `cam_status` | 看解析到的项目和数据库 |
+| `cam_recall` | Search solution memory with one English sentence |
+| `cam_index` | Build the graph once, then update it incrementally |
+| `cam_ls` / `cam_find` / `cam_grep` | List a directory, find by symbol name, or search literal text |
+| `cam_read` / `cam_ref` | Read one symbol, or list callers (`in`) and callees (`out`) |
+| `cam_add` / `cam_mem_show` / `cam_mem_tree` | Store one memory, show it by id, or print the memory tree |
+| `cam_status` | Show the resolved project and database |
 
-Harness 有 skill 服务时，插件会注册运行时 skill `cam`，步骤和上面这组工具一致。
+When Harness provides the skill service, the plugin registers a runtime skill named `cam`. Its steps match these tools.
 
-## 开发
+## Development
 
 ```sh
 npm test
