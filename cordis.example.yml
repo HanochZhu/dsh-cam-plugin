@@ -1,0 +1,11 @@
+# Local overlay for a checkout that is not installed as a bundle.
+# The plugin path must be absolute.
+#
+#   dsh web --patch ./cordis.example.yml
+#
+- insert:
+    - id: cam
+      name: "d:/AI/RAG/dsh-cam-plugin/index.js"
+      # config:
+      #   camBin: cam
+      #   project: D:/work/my-repo

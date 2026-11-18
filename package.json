@@ -1,0 +1,48 @@
+{
+  "name": "dsh-cam-plugin",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness plugin for the local cam code graph and solution memory.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HanochZhu/dsh-cam-plugin"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "cordis",
+    "cam",
+    "code-graph",
+    "memory"
+  ],
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "lib",
+    "skills",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.1.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "*",
+    "@deepseek-ai/dsh-tools": "*"
+  },
+  "scripts": {
+    "test": "node --check index.js && node --check lib/commands.js && node --check lib/run.js && node --check lib/present.js && node --check lib/skill.js && node --test test/commands.test.js test/run.test.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

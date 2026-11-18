@@ -1,0 +1,10 @@
+# Installed with the bundle. Override config from a later layer, for example
+# the profile cordis.patch.yml:
+#
+#   - id: cam
+#     config:
+#       project: D:/work/my-repo
+#
+- insert:
+    - id: cam
+      name: dsh-cam-plugin
