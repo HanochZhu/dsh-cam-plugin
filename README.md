@@ -6,6 +6,16 @@ Connect local [cam](https://github.com/HanochZhu/codeagent_memory) (code agent m
 
 The plugin talks to the local `cam --json` binary. The memory and code graph stay in the target project's `.cam/cam.db` and are not uploaded.
 
+## Interface preview
+
+**Memory browser**
+
+![CAM memory tree with a saved memory open beside it](docs/images/cam-memory.png)
+
+**Code graph**
+
+![CAM code graph showing callers and callees of prepareOrder](docs/images/cam-code-graph.png)
+
 ## Prerequisite
 
 `cam` is already on `PATH` and `cam --help` runs. This package does not ship the binary.

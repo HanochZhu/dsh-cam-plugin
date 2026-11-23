@@ -6,6 +6,16 @@
 
 插件通过本机 `cam --json` 工作。记忆和代码图留在目标项目的 `.cam/cam.db`，不会上传。
 
+## 界面预览
+
+**记忆浏览**
+
+![CAM 记忆树和选中记忆的正文](docs/images/cam-memory.png)
+
+**代码图**
+
+![CAM 代码图显示 prepareOrder 的调用方和被调用方](docs/images/cam-code-graph.png)
+
 ## 准备
 
 `cam` 已经在 `PATH` 上，`cam --help` 能跑。本包不附带这个二进制。
