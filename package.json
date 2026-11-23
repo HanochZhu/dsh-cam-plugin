@@ -19,10 +19,12 @@
   ],
   "main": "./index.js",
   "exports": {
-    ".": "./index.js"
+    ".": "./index.js",
+    "./client": "./client.js"
   },
   "files": [
     "index.js",
+    "client.js",
     "lib",
     "skills",
     "cordis.patch.yml",
@@ -42,9 +44,12 @@
     "@deepseek-ai/dsh-tools": "*"
   },
   "scripts": {
-    "test": "node --check index.js && node --check lib/commands.js && node --check lib/run.js && node --check lib/present.js && node --check lib/skill.js && node --test test/commands.test.js test/run.test.js"
+    "test": "node --check index.js && node --check client.js && node --test test/commands.test.js test/run.test.js test/panel.test.js"
   },
   "dsh": {
+    "client": {
+      "platform": "web"
+    },
     "bundle": {
       "patch": "./cordis.patch.yml"
     }

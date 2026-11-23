@@ -26,6 +26,7 @@ import {
 } from "./lib/commands.js";
 import { present } from "./lib/present.js";
 import { runProcess } from "./lib/run.js";
+import { registerPanel } from "./lib/panel.js";
 
 export const name = "cam";
 export const inject = ["tools"];
@@ -65,6 +66,8 @@ export function apply(ctx, config = {}) {
       stdin,
     });
   };
+
+  ctx.inject(["connection"], (scope) => registerPanel(scope, call, defaultProject));
 
   const register = (def) => {
     ctx.tools.register(

@@ -31,6 +31,8 @@ test("recall builds an English query and optional flags", () => {
 
 test("a leading dash is passed as a positional", () => {
   assert.deepEqual(recallCommand({ query: "-n" }), ["recall", "--", "-n"]);
+  assert.deepEqual(findCommand({ query: "-", limit: 40 }), ["find", "--limit", "40", "--", "-"]);
+  assert.deepEqual(refCommand({ symbol: "-sample.js", dir: "out" }), ["ref", "--dir", "out", "--", "-sample.js"]);
 });
 
 test("index force is explicit", () => {

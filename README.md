@@ -24,6 +24,17 @@ dsh --profile <profile>
 
 `--dump-config` lists a layer named `# == dsh-cam-plugin`.
 
+## Explore a project
+
+In Harness Web, open **Plugins → Installed → dsh-cam-plugin** and select a project in **CAM explorer**.
+
+- **Memory** shows the project's memory tree. Filter by summary and select an entry to read its body and follow related memories.
+- **Code graph** lets you browse indexed files or search by symbol. Select a symbol to inspect its one-hop callers and callees, then select a neighbor to follow the graph.
+
+The explorer uses the configured `project` or `CAM_PROJECT` as its first choice, followed by the workspaces registered in Harness. If a project has no code graph, run `cam index` in the project root and refresh the explorer.
+
+## Configure
+
 To pin the binary or the default project, override this row by id in the profile's `cordis.patch.yml`. That layer replaces the row's entire `config`:
 
 ```yaml

@@ -24,6 +24,17 @@ dsh --profile <profile>
 
 用 `--dump-config` 时，层列表里会出现 `# == dsh-cam-plugin`。
 
+## 浏览项目
+
+在 Harness Web 打开 **插件 → 已安装 → dsh-cam-plugin**，然后在 **CAM 项目浏览**中选择项目。
+
+- **记忆**展示项目的记忆树。可以按摘要筛选，点击条目查看正文和关联记忆。
+- **代码图**支持浏览已索引的文件和搜索符号。点击符号可查看一跳调用方和被调用方，再点击任意邻居继续查看。
+
+项目列表优先显示配置中的 `project` 或 `CAM_PROJECT`，随后列出 Harness 已注册的工作区。若项目还没有代码图，在项目根目录运行 `cam index` 后刷新面板。
+
+## 配置
+
 指定二进制或默认项目时，在 profile 的 `cordis.patch.yml` 里按 id 覆盖。这一层会换掉该行的整个 `config`：
 
 ```yaml
