@@ -30,13 +30,14 @@ test("the panel reads only registered projects and does not initialize a databas
     connection: { fetch: { register: (value) => { route = value; } } },
   };
   const calls = [];
-  registerPanel(ctx, async (args, options) => {
+  const call = async (args, options) => {
     calls.push({ args, path: options.path });
     return { refs: [] };
-  });
+  };
+  registerPanel(ctx, { call });
   const read = (params) => route.fetch(new Request(`http://localhost${route.path}?${new URLSearchParams(params)}`));
 
-  assert.deepEqual(route.methods, ["GET"]);
+  assert.deepEqual(route.methods, ["GET", "POST"]);
   assert.deepEqual(await (await read({ action: "projects" })).json(), contexts);
   assert.equal((await read({ action: "memory", project: base })).status, 404);
   assert.equal((await (await read({ action: "memory", project: "two" })).json()).code, "noDatabase");
@@ -48,4 +49,45 @@ test("the panel reads only registered projects and does not initialize a databas
   assert.deepEqual(calls, ["in", "out"].map((dir) => ({
     args: ["ref", "checkout.js:function:pay:1", "--dir", dir], path: indexed,
   })));
+});
+
+test("indexing requires POST and a registered project, and retries after a failed attempt", async () => {
+  const project = { id: "one", path: join(tmpdir(), "dsh-cam-unindexed-demo"), title: "New project" };
+  let route;
+  const ctx = {
+    effect() {},
+    get: () => ({ list: () => [project] }),
+    connection: { fetch: { register: (value) => { route = value; } } },
+  };
+  let fail;
+  const attempts = [];
+  registerPanel(ctx, {
+    call: () => assert.fail("The index operation must not require a database lookup."),
+    index: (args) => {
+      attempts.push(args);
+      if (attempts.length > 1) return { files: 1 };
+      return new Promise((_, reject) => { fail = reject; });
+    },
+  });
+  const request = (method, action = "index", id = project.id) => route.fetch(new Request(
+    `http://localhost${route.path}?${new URLSearchParams({ action, project: id, force: "true" })}`, { method },
+  ));
+
+  const getIndex = await request("GET");
+  assert.equal(getIndex.status, 405);
+  assert.equal(getIndex.headers.get("allow"), "POST");
+  assert.equal((await request("POST", "projects")).status, 405);
+  assert.equal((await request("POST", "index", project.path)).status, 404);
+  assert.deepEqual(attempts, []);
+
+  const first = request("POST");
+  const duplicate = await request("POST");
+  assert.equal(duplicate.status, 409);
+  assert.equal((await duplicate.json()).code, "indexRunning");
+  fail(new Error("test index failure"));
+  assert.equal((await first).status, 500);
+  const retry = await request("POST");
+  assert.equal(retry.status, 200);
+  assert.deepEqual(await retry.json(), { files: 1 });
+  assert.deepEqual(attempts, [{ path: project.path }, { path: project.path }]);
 });

@@ -9,6 +9,9 @@ window.__ModuleLoader__.load({
     const copy = {
       en: {
         title: "CAM explorer", project: "Project", refresh: "Refresh",
+        buildIndex: "Build index", indexPending: "Building the code index…",
+        indexDone: "Code index updated.", indexFailed: "Could not build the code index.",
+        indexRunning: "This project is already being indexed.",
         memory: "Memory", graph: "Code graph", loading: "Loading…",
         filter: "Filter memory summaries", noMemory: "This project has no saved memories.",
         noMatches: "No matching entries.", selectMemory: "Select a memory to read it.",
@@ -18,12 +21,15 @@ window.__ModuleLoader__.load({
         selectSymbol: "Select a symbol to view its callers and callees.",
         callers: "Callers", selected: "Selected symbol", callees: "Callees",
         noRefs: "No indexed references.", ambiguous: "Choose the exact symbol.",
-        noDatabase: "No CAM database in this project. Run cam index in its root to get started.",
-        notIndexed: "The code graph is empty. Run cam index in this project's root.",
+        noDatabase: "This project has no CAM database yet. Select Build index to get started.",
+        notIndexed: "This project has no code index yet. Select Build index to create it.",
         error: "CAM data could not be loaded.", noProjects: "No project is available.",
       },
       zh: {
         title: "CAM 项目浏览", project: "项目", refresh: "刷新",
+        buildIndex: "建立索引", indexPending: "正在建立代码索引…",
+        indexDone: "代码索引已更新。", indexFailed: "建立代码索引失败。",
+        indexRunning: "此项目正在建立索引。",
         memory: "记忆", graph: "代码图", loading: "正在加载…",
         filter: "筛选记忆摘要", noMemory: "这个项目还没有保存的记忆。",
         noMatches: "没有匹配的条目。", selectMemory: "选择一条记忆查看正文。",
@@ -33,23 +39,32 @@ window.__ModuleLoader__.load({
         selectSymbol: "选择一个符号，查看谁调用它，以及它调用了谁。",
         callers: "调用方", selected: "当前符号", callees: "被调用方",
         noRefs: "没有已索引的引用。", ambiguous: "请选择具体的同名符号。",
-        noDatabase: "这个项目还没有 CAM 数据库。可在项目根目录运行 cam index 初始化。",
-        notIndexed: "此项目尚未建立代码图。可在项目根目录运行 cam index。",
+        noDatabase: "此项目还没有 CAM 数据库。点击「建立索引」即可初始化。",
+        notIndexed: "此项目还没有代码索引。点击「建立索引」即可创建。",
         error: "无法加载 CAM 数据。", noProjects: "没有可用的项目。",
       },
     };
 
+    function camUrl(action, project, value = "") {
+      return `api/dsh-cam-panel?${new URLSearchParams({ action, project, value })}`;
+    }
+
+    async function fetchJson(url, options) {
+      const response = await fetch(url, options);
+      if (response.ok) return response.json();
+      const error = await response.json().catch(() => null);
+      throw Object.assign(new Error(error?.message ?? `HTTP ${response.status}`), { code: error?.code });
+    }
+
     function useQuery(action, project, value, revision, keepPrevious = false) {
-      const url = action && `api/dsh-cam-panel?${new URLSearchParams({ action, project, value })}`;
+      const url = action && camUrl(action, project, value);
       const [result, setResult] = useState(null);
       useEffect(() => {
         if (!url) return;
         const controller = new AbortController();
         const { signal } = controller;
-        fetch(url, { signal }).then(async (response) => {
-          const json = await response.json();
-          if (!response.ok) throw Object.assign(new Error(json.message), { code: json.code });
-          if (!signal.aborted) setResult({ url, revision, data: json });
+        fetchJson(url, { signal }).then((data) => {
+          if (!signal.aborted) setResult({ url, revision, data });
         }).catch((error) => {
           if (!signal.aborted) setResult({ url, revision, error });
         });
@@ -222,19 +237,49 @@ window.__ModuleLoader__.load({
       const [project, setProject] = useState("");
       const [view, setView] = useState("memory");
       const [revision, setRevision] = useState(0);
+      const [indexStatus, setIndexStatus] = useState(null);
       const listing = useQuery("projects", "", "", revision, true);
+      const active = listing.data?.find(({ id }) => id === project) ?? listing.data?.[0];
+      const indexing = indexStatus?.label === "indexPending";
+
+      async function buildIndex() {
+        if (!active || indexing) return;
+        setIndexStatus({ label: "indexPending" });
+        try {
+          await fetchJson(camUrl("index", active.id), { method: "POST" });
+          setIndexStatus({ label: "indexDone" });
+          setView("graph");
+          setRevision((value) => value + 1);
+        } catch (error) {
+          const label = error.code === "indexRunning" ? "indexRunning" : "indexFailed";
+          setIndexStatus({ label, error: label === "indexFailed" ? error.message : undefined });
+        }
+      }
+
       return h("section", { "data-cam-panel": "", "aria-label": t("title") },
         h("header", { className: "cam-bar cam-header" },
           h("h3", null, t("title")),
-          h("button", { type: "button", onClick: () => setRevision((value) => value + 1) }, t("refresh")),
+          h("div", { className: "cam-bar cam-header-actions" },
+            h("button", { type: "button", disabled: !active || indexing, onClick: buildIndex }, t("buildIndex")),
+            h("button", {
+              type: "button", disabled: indexing, onClick: () => setRevision((value) => value + 1),
+            }, t("refresh")),
+          ),
         ),
+        indexStatus && h("p", {
+          role: indexStatus.label === "indexFailed" ? "alert" : "status", className: "cam-note cam-index-status",
+        }, t(indexStatus.label), indexStatus.error && ` ${indexStatus.error}`),
         state(listing, t, (projects) => {
-          const active = projects.find(({ id }) => id === project) ?? projects[0];
           if (!active) return h("p", { className: "cam-note" }, t("noProjects"));
           return h("div", null,
             h("label", { className: "cam-project" },
               h("span", null, t("project")),
-              h("select", { value: active.id, onChange: (event) => setProject(event.target.value) },
+              h("select", {
+                value: active.id, disabled: indexing, onChange: (event) => {
+                  setProject(event.target.value);
+                  setIndexStatus(null);
+                },
+              },
                 projects.map(({ id, title, path }) => h("option", {
                   key: id, value: id,
                 }, `${title} — ${path}`))),
@@ -277,7 +322,8 @@ window.__ModuleLoader__.load({
         background: var(--cam-surface);
       }
       [data-cam-panel] button { cursor: pointer; }
-      [data-cam-panel] button:hover { background: var(--cam-hover); }
+      [data-cam-panel] button:not(:disabled):hover { background: var(--cam-hover); }
+      [data-cam-panel] button:disabled { opacity: .55; cursor: default; }
       [data-cam-panel] :is(button, input, select):focus-visible {
         outline: 2px solid var(--cam-accent); outline-offset: -2px;
       }
@@ -290,6 +336,8 @@ window.__ModuleLoader__.load({
       [data-cam-panel] h4 { margin: 0 0 10px; font-size: 15px; }
       [data-cam-panel] h5 { margin: 0 0 6px; font-size: 12px; color: var(--cam-muted); }
       [data-cam-panel] .cam-header { justify-content: space-between; margin-bottom: 12px; }
+      [data-cam-panel] :is(.cam-header, .cam-header-actions) { flex-wrap: wrap; }
+      [data-cam-panel] .cam-index-status { padding: 0 0 10px; overflow-wrap: anywhere; }
       [data-cam-panel] .cam-bar, [data-cam-panel] .cam-project {
         display: flex; align-items: center; gap: 8px; min-width: 0;
       }

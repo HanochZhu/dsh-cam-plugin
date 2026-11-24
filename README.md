@@ -41,7 +41,7 @@ In Harness Web, open **Plugins → Installed → dsh-cam-plugin** and select a p
 - **Memory** shows the project's memory tree. Filter by summary and select an entry to read its body and follow related memories.
 - **Code graph** lets you browse indexed files or search by symbol. Select a symbol to inspect its one-hop callers and callees, then select a neighbor to follow the graph.
 
-The explorer uses the configured `project` or `CAM_PROJECT` as its first choice, followed by the workspaces registered in Harness. If a project has no code graph, run `cam index` in the project root and refresh the explorer.
+The explorer uses the configured `project` or `CAM_PROJECT` as its first choice, followed by the workspaces registered in Harness. Select **Build index** to create the selected project's code index or update it incrementally. The **Code graph** view opens automatically when indexing finishes.
 
 ## Configure
 

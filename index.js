@@ -67,7 +67,8 @@ export function apply(ctx, config = {}) {
     });
   };
 
-  ctx.inject(["connection"], (scope) => registerPanel(scope, call, defaultProject));
+  const index = (args, signal) => call(indexCommand(args), { path: args.path, timeoutMs: INDEX_TIMEOUT_MS, signal });
+  ctx.inject(["connection"], (scope) => registerPanel(scope, { call, index }, defaultProject));
 
   const register = (def) => {
     ctx.tools.register(
@@ -111,7 +112,7 @@ export function apply(ctx, config = {}) {
       force: { type: "boolean", description: "Rebuild every file even when the graph already exists." },
       ...pathParam,
     },
-    run: (args, signal) => call(indexCommand(args), { path: args.path, timeoutMs: INDEX_TIMEOUT_MS, signal }),
+    run: index,
   });
 
   register({
