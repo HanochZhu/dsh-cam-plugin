@@ -21,8 +21,10 @@ window.__ModuleLoader__.load({
         selectSymbol: "Select a symbol to view its callers and callees.",
         callers: "Callers", selected: "Selected symbol", callees: "Callees",
         noRefs: "No indexed references.", ambiguous: "Choose the exact symbol.",
-        noDatabase: "This project has no CAM database yet. Select Build index to get started.",
-        notIndexed: "This project has no code index yet. Select Build index to create it.",
+        missingIndex: "No code graph yet",
+        startGraph: "Build the code index to search symbols and explore their callers and callees.",
+        noSource: "No indexed source files",
+        noSourceDetail: "CAM found no supported source files in this project.",
         error: "CAM data could not be loaded.", noProjects: "No project is available.",
       },
       zh: {
@@ -39,8 +41,10 @@ window.__ModuleLoader__.load({
         selectSymbol: "选择一个符号，查看谁调用它，以及它调用了谁。",
         callers: "调用方", selected: "当前符号", callees: "被调用方",
         noRefs: "没有已索引的引用。", ambiguous: "请选择具体的同名符号。",
-        noDatabase: "此项目还没有 CAM 数据库。点击「建立索引」即可初始化。",
-        notIndexed: "此项目还没有代码索引。点击「建立索引」即可创建。",
+        missingIndex: "此项目尚未建立代码图",
+        startGraph: "建立索引后，即可搜索代码符号，查看谁调用了它，以及它调用了谁。",
+        noSource: "没有已索引的源文件",
+        noSourceDetail: "CAM 在此项目中未找到支持的源文件。",
         error: "无法加载 CAM 数据。", noProjects: "没有可用的项目。",
       },
     };
@@ -77,7 +81,7 @@ window.__ModuleLoader__.load({
       if (query.error) {
         const { code, message } = query.error;
         if (code === "noDatabase" || code === "notIndexed") {
-          return h("p", { role: "status", className: "cam-note" }, t(code));
+          return h("p", { role: "status", className: "cam-note" }, t("missingIndex"));
         }
         return h("p", { role: "alert", className: "cam-note" }, t("error"), " ", message);
       }
@@ -94,46 +98,43 @@ window.__ModuleLoader__.load({
       });
     }
 
-    function Memory({ project, revision, t }) {
+    function Memory({ project, revision, nodes, t }) {
       const [filter, setFilter] = useState("");
       const [id, setId] = useState("");
-      const tree = useQuery("memory", project, "", revision);
       const detail = useQuery(id && "memoryDetail", project, id, revision);
-      return state(tree, t, (nodes) => {
-        if (nodes.length === 0) return h("p", { className: "cam-note" }, t("noMemory"));
-        const rows = memoryRows(nodes, filter.trim().toLocaleLowerCase());
-        return h("div", { className: "cam-content" },
-          h("input", {
-            type: "search", "aria-label": t("filter"), placeholder: t("filter"),
-            value: filter, onChange: (event) => setFilter(event.target.value),
-          }),
-          h("div", { className: "cam-split" },
-            h("ul", { className: "cam-list", "aria-label": t("memory") },
-              rows.length === 0
-                ? h("li", { className: "cam-note" }, t("noMatches"))
-                : rows.map((node) => h("li", { key: node.id },
-                  h("button", {
-                    type: "button", className: "cam-row", "aria-pressed": node.id === id,
-                    style: { paddingInlineStart: 10 + 12 * Math.min(node.depth, 8) },
-                    onClick: () => setId(node.id),
-                  }, node.summary))),
-            ),
-            h("div", { className: "cam-detail" }, id
-              ? state(detail, t, (item) => h("article", null,
-                h("h4", null, item.summary),
-                (item.latest === false || item.needs_update) && h("p", { className: "cam-meta" },
-                  [item.latest === false && t("older"), item.needs_update && t("needsUpdate")].filter(Boolean).join(" · ")),
-                h("div", { className: "cam-memory-body" }, item.body),
-                item.links?.length > 0 && h("div", { className: "cam-links" },
-                  h("h5", null, t("related")),
-                  item.links.map((link) => h("button", {
-                    type: "button", key: link, onClick: () => setId(link),
-                  }, link))),
-              ))
-              : h("p", { className: "cam-note" }, t("selectMemory"))),
+      if (nodes.length === 0) return h("p", { className: "cam-note" }, t("noMemory"));
+      const rows = memoryRows(nodes, filter.trim().toLocaleLowerCase());
+      return h("div", { className: "cam-content" },
+        h("input", {
+          type: "search", "aria-label": t("filter"), placeholder: t("filter"),
+          value: filter, onChange: (event) => setFilter(event.target.value),
+        }),
+        h("div", { className: "cam-split" },
+          h("ul", { className: "cam-list", "aria-label": t("memory") },
+            rows.length === 0
+              ? h("li", { className: "cam-note" }, t("noMatches"))
+              : rows.map((node) => h("li", { key: node.id },
+                h("button", {
+                  type: "button", className: "cam-row", "aria-pressed": node.id === id,
+                  style: { paddingInlineStart: 10 + 12 * Math.min(node.depth, 8) },
+                  onClick: () => setId(node.id),
+                }, node.summary))),
           ),
-        );
-      });
+          h("div", { className: "cam-detail" }, id
+            ? state(detail, t, (item) => h("article", null,
+              h("h4", null, item.summary),
+              (item.latest === false || item.needs_update) && h("p", { className: "cam-meta" },
+                [item.latest === false && t("older"), item.needs_update && t("needsUpdate")].filter(Boolean).join(" · ")),
+              h("div", { className: "cam-memory-body" }, item.body),
+              item.links?.length > 0 && h("div", { className: "cam-links" },
+                h("h5", null, t("related")),
+                item.links.map((link) => h("button", {
+                  type: "button", key: link, onClick: () => setId(link),
+                }, link))),
+            ))
+            : h("p", { className: "cam-note" }, t("selectMemory"))),
+        ),
+      );
     }
 
     function location(node) {
@@ -182,12 +183,12 @@ window.__ModuleLoader__.load({
       );
     }
 
-    function Graph({ project, revision, t }) {
+    function Graph({ project, revision, root, t }) {
       const [input, setInput] = useState("");
       const [search, setSearch] = useState("");
       const [path, setPath] = useState("");
       const [symbol, setSymbol] = useState(null);
-      const results = useQuery(search ? "search" : "browse", project, search || path, revision);
+      const results = useQuery(search ? "search" : path && "browse", project, search || path, revision);
       const selected = symbol?.id ?? symbol?.path ?? "";
       const refs = useQuery(selected && "refs", project, selected, revision);
       return h("div", { className: "cam-content" },
@@ -211,7 +212,7 @@ window.__ModuleLoader__.load({
                 }, t("up")),
                 h("small", { title: path }, path || t("root")),
               )),
-            state(results, t, (data) => {
+            state(search || path ? results : { data: root }, t, (data) => {
               const rows = search ? data.hits : data;
               if (!rows.length) return h("p", { className: "cam-note" }, t(search ? "noMatches" : "noSymbols"));
               return h("div", null,
@@ -233,6 +234,15 @@ window.__ModuleLoader__.load({
       );
     }
 
+    function GraphPlaceholder({ title, description, children }) {
+      return h("section", { className: "cam-graph-placeholder", "aria-label": title },
+        h("span", { className: "cam-graph-icon", "aria-hidden": "true" }),
+        h("h4", null, title),
+        h("p", null, description),
+        children,
+      );
+    }
+
     function Panel({ t }) {
       const [project, setProject] = useState("");
       const [view, setView] = useState("memory");
@@ -240,6 +250,10 @@ window.__ModuleLoader__.load({
       const [indexStatus, setIndexStatus] = useState(null);
       const listing = useQuery("projects", "", "", revision, true);
       const active = listing.data?.find(({ id }) => id === project) ?? listing.data?.[0];
+      const query = useQuery(active && (view === "memory" ? "memory" : "browse"), active?.id, "", revision, true);
+      const content = query.error && query.revision !== revision ? {} : query;
+      const issue = content.error?.code;
+      const needsIndex = issue === "noDatabase" || issue === "notIndexed";
       const indexing = indexStatus?.label === "indexPending";
 
       async function buildIndex() {
@@ -256,19 +270,22 @@ window.__ModuleLoader__.load({
         }
       }
 
+      const indexFeedback = indexStatus && h("p", {
+        role: indexStatus.label === "indexFailed" ? "alert" : "status", className: "cam-note cam-index-status",
+      }, t(indexStatus.label), indexStatus.error && ` ${indexStatus.error}`);
       return h("section", { "data-cam-panel": "", "aria-label": t("title") },
         h("header", { className: "cam-bar cam-header" },
           h("h3", null, t("title")),
           h("div", { className: "cam-bar cam-header-actions" },
-            h("button", { type: "button", disabled: !active || indexing, onClick: buildIndex }, t("buildIndex")),
+            active && content.revision !== undefined && !needsIndex && h("button", {
+              type: "button", disabled: indexing, onClick: buildIndex,
+            }, t("buildIndex")),
             h("button", {
               type: "button", disabled: indexing, onClick: () => setRevision((value) => value + 1),
             }, t("refresh")),
           ),
         ),
-        indexStatus && h("p", {
-          role: indexStatus.label === "indexFailed" ? "alert" : "status", className: "cam-note cam-index-status",
-        }, t(indexStatus.label), indexStatus.error && ` ${indexStatus.error}`),
+        !needsIndex && indexFeedback,
         state(listing, t, (projects) => {
           if (!active) return h("p", { className: "cam-note" }, t("noProjects"));
           return h("div", null,
@@ -284,12 +301,25 @@ window.__ModuleLoader__.load({
                   key: id, value: id,
                 }, `${title} — ${path}`))),
             ),
-            h("div", { className: "cam-switch", role: "group", "aria-label": t("title") },
+            issue !== "noDatabase" && h("div", { className: "cam-switch", role: "group", "aria-label": t("title") },
               ["memory", "graph"].map((tab) => h("button", {
                 type: "button", key: tab, "aria-pressed": view === tab, onClick: () => setView(tab),
               }, t(tab))),
             ),
-            h(view === "memory" ? Memory : Graph, { key: active.id, project: active.id, revision, t }),
+            needsIndex
+              ? h(GraphPlaceholder, { title: t("missingIndex"), description: t("startGraph") },
+                h("button", { type: "button", className: "cam-build-primary", disabled: indexing, onClick: buildIndex },
+                  t("buildIndex")),
+                indexFeedback,
+              )
+              : state(content, t, (data) => {
+                const props = { key: active.id, project: active.id, revision, t };
+                if (view === "memory") return h(Memory, { ...props, nodes: data });
+                if (data.length === 0) {
+                  return h(GraphPlaceholder, { title: t("noSource"), description: t("noSourceDetail") });
+                }
+                return h(Graph, { ...props, root: data });
+              }),
           );
         }),
       );
@@ -343,6 +373,39 @@ window.__ModuleLoader__.load({
       }
       [data-cam-panel] .cam-project select, [data-cam-panel] input { flex: 1; width: 100%; }
       [data-cam-panel] .cam-switch { display: flex; gap: 6px; margin: 12px 0; }
+      [data-cam-panel] .cam-graph-placeholder {
+        box-sizing: border-box; display: grid; justify-items: center; align-content: center;
+        gap: 9px; min-block-size: 216px; margin-block-start: 12px; padding: 22px 16px;
+        border: 1px solid var(--cam-line); border-radius: 10px; text-align: center;
+        background: var(--dsw-alias-bg-layer-2, #f5f7fa); overflow-wrap: anywhere;
+      }
+      [data-cam-panel] .cam-graph-placeholder h4 { margin: 0; font-size: 16px; }
+      [data-cam-panel] .cam-graph-placeholder p {
+        margin: 0; max-inline-size: 48ch; color: var(--cam-muted); line-height: 1.5;
+      }
+      [data-cam-panel] .cam-graph-placeholder .cam-index-status { padding: 0; }
+      [data-cam-panel] .cam-graph-placeholder [role="alert"] {
+        color: var(--dsw-alias-state-error-primary, #b42318);
+      }
+      [data-cam-panel] .cam-graph-icon {
+        position: relative; display: grid; place-items: center; inline-size: 36px; block-size: 36px;
+        border: 1px solid var(--cam-line); border-radius: 10px; background: var(--cam-surface);
+        color: var(--cam-accent);
+      }
+      [data-cam-panel] .cam-graph-icon::before {
+        content: ""; position: absolute; inline-size: 20px; block-size: 1px; background: currentColor;
+      }
+      [data-cam-panel] .cam-graph-icon::after {
+        content: ""; position: absolute; inline-size: 5px; block-size: 5px; border-radius: 50%;
+        background: currentColor; box-shadow: -9px 0 currentColor, 9px 0 currentColor;
+      }
+      [data-cam-panel] button.cam-build-primary {
+        margin-block-start: 3px; padding: 7px 13px; border-color: var(--cam-accent);
+        background: var(--cam-accent); color: var(--dsw-alias-label-primary-foreground, #fff); font-weight: 600;
+      }
+      [data-cam-panel] button.cam-build-primary:not(:disabled):hover {
+        background: color-mix(in srgb, var(--cam-accent) 88%, var(--cam-surface));
+      }
       [data-cam-panel] .cam-content { display: grid; gap: 10px; }
       [data-cam-panel] .cam-split {
         display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 10px;
